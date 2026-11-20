@@ -1,0 +1,13 @@
+{
+  "name": "upscale-2api",
+  "version": "1.0.0",
+  "description": "UpscaleAI Studio 账号池 -> OpenAI 兼容网关",
+  "type": "module",
+  "private": true,
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "start": "node server.mjs",
+    "smoke": "node scripts/smoke.mjs",
+    "check": "node --check server.mjs"
+  }
+}

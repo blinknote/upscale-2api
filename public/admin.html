@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>upscale-2api</title>
+<style>
+  :root { color-scheme: dark; --bg:#0a0b0e; --panel:#101218; --line:#1e222c; --txt:#e7e9ee; --dim:#878ea0; --acc:#5b6cff; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--txt); font:13px/1.55 ui-sans-serif,-apple-system,"SF Pro Text","PingFang SC",sans-serif; }
+  header { display:flex; flex-wrap:wrap; align-items:center; gap:10px 12px; padding:10px 18px; border-bottom:1px solid var(--line); position:sticky; top:0; background:var(--bg); z-index:9; }
+  .brand { font-weight:600; letter-spacing:.02em; white-space:nowrap; flex:none; }
+  .brand span { color:var(--dim); font-weight:400; margin-left:6px; }
+  .grow { flex:1; }
+  nav { display:flex; gap:2px; flex:none; }
+  nav button { white-space:nowrap; }
+  nav button { background:none; border:none; color:var(--dim); padding:6px 11px; border-radius:6px; cursor:pointer; font:inherit; }
+  nav button[aria-selected="true"] { background:var(--panel); color:var(--txt); }
+  input,select,textarea,button { font:inherit; color:inherit; background:var(--panel); border:1px solid var(--line); border-radius:7px; padding:7px 10px; outline:none; }
+  input:focus,select:focus,textarea:focus { border-color:var(--acc); }
+  button { cursor:pointer; }
+  button:hover { border-color:var(--acc); }
+  button.primary { background:var(--acc); border-color:var(--acc); color:#fff; }
+  button.ghost { background:none; }
+  button.danger:hover { border-color:#e5484d; color:#e5484d; }
+  main { padding:18px; max-width:1400px; }
+  section { display:none; }
+  section[data-active] { display:block; }
+  .cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; margin-bottom:16px; }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:12px 14px; }
+  .card b { display:block; font-size:21px; font-weight:600; font-variant-numeric:tabular-nums; }
+  .card i { color:var(--dim); font-style:normal; font-size:11px; letter-spacing:.04em; text-transform:uppercase; }
+  table { width:100%; border-collapse:collapse; }
+  th,td { text-align:left; padding:8px 10px; border-bottom:1px solid var(--line); vertical-align:middle; white-space:nowrap; }
+  th { color:var(--dim); font-weight:500; font-size:11px; letter-spacing:.04em; text-transform:uppercase; }
+  td.n { font-variant-numeric:tabular-nums; }
+  .tag { display:inline-block; padding:1px 8px; border-radius:99px; font-size:11px; border:1px solid var(--line); color:var(--dim); }
+  .tag.on { color:#4ec97a; border-color:#1e4630; }
+  .tag.off { color:#e5484d; border-color:#4a2124; }
+  .tag.warn { color:#e0a13a; border-color:#4a3a1c; }
+  .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  .form { display:flex; flex-wrap:wrap; gap:10px; background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:12px; margin-bottom:14px; }
+  .form > label.f { flex:1 1 130px; min-width:0; }
+  .form > .row { flex:1 1 100%; }
+  .form textarea, .form > .full { flex:1 1 100%; }
+  .form textarea { min-height:66px; resize:vertical; font-family:ui-monospace,Menlo,monospace; font-size:12px; }
+  .msg { min-height:18px; font-size:12px; color:#e5484d; }
+  .keybox { display:none; flex-wrap:wrap; gap:8px; align-items:center; background:#0f1526; border:1px solid var(--acc); border-radius:8px; padding:10px; margin-bottom:12px; font-family:ui-monospace,Menlo,monospace; font-size:12px; word-break:break-all; }
+  .keybox[data-show] { display:flex; }
+  .mono { font-family:ui-monospace,Menlo,monospace; font-size:12px; color:var(--dim); }
+  .scroll { max-height:60vh; overflow:auto; }
+  .tablewrap { overflow-x:auto; }
+  .tablewrap table, .scroll table { min-width:780px; }
+  .scroll { overflow:auto; }
+  td.actions { white-space:nowrap; text-align:right; }
+  td.actions button { padding:4px 8px; font-size:12px; }
+  label.f { display:grid; gap:4px; color:var(--dim); font-size:11px; min-width:0; }
+  label.f input, label.f select { min-width:0; }
+  label.f input, label.f select { width:100%; }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">upscale-2api <span id="ver"></span></div>
+  <nav>
+    <button data-tab="overview" aria-selected="true">概览</button>
+    <button data-tab="accounts">账号</button>
+    <button data-tab="keys">密钥</button>
+    <button data-tab="models">模型</button>
+    <button data-tab="logs">日志</button>
+  </nav>
+  <div class="grow"></div>
+  <input id="adminKey" placeholder="admin key" style="width:150px;flex:none">
+  <button id="saveKey">载入</button>
+</header>
+<main>
+  <div class="msg" id="msg"></div>
+
+  <section data-tab="overview" data-active>
+    <div class="cards" id="cards"></div>
+  </section>
+
+  <section data-tab="accounts">
+    <div class="form">
+      <textarea id="acctInput" placeholder="RT / 整段 localStorage JSON / email:password，一行一个"></textarea>
+      <label class="f">备注<input id="acctName" placeholder="可选"></label>
+      <div class="row"><button class="primary" id="addAcct">添加账号</button><button id="reloadAccts">刷新状态</button></div>
+    </div>
+    <div class="scroll"><table>
+      <thead><tr><th>备注</th><th>状态</th><th>套餐</th><th>积分</th><th>AT</th><th>并发</th><th>成功/失败</th><th>延迟</th><th></th></tr></thead>
+      <tbody id="acctRows"></tbody>
+    </table></div>
+  </section>
+
+  <section data-tab="keys">
+    <div class="keybox" id="keybox"><span id="keyText"></span><button id="copyKey" class="ghost">复制</button><button id="hideKey" class="ghost">关闭</button></div>
+    <div class="form">
+      <label class="f">名称<input id="kName" placeholder="client"></label>
+      <label class="f">数量<input id="kCount" type="number" value="1" min="1" max="50"></label>
+      <label class="f">RPM<input id="kRpm" type="number" value="60"></label>
+      <label class="f">积分额度<input id="kQuota" type="number" placeholder="不限"></label>
+      <label class="f">每日请求<input id="kDaily" type="number" placeholder="不限"></label>
+      <label class="f">有效天数<input id="kDays" type="number" placeholder="永久"></label>
+      <label class="f full">限定模型<input id="kModels" placeholder="逗号分隔，留空 = 全部"></label>
+      <div class="row"><button class="primary" id="addKey">生成密钥</button></div>
+    </div>
+    <div class="tablewrap"><table>
+      <thead><tr><th>名称</th><th>前缀</th><th>状态</th><th>RPM</th><th>积分</th><th>请求</th><th>最近使用</th><th></th></tr></thead>
+      <tbody id="keyRows"></tbody>
+    </table></div>
+  </section>
+
+  <section data-tab="models">
+    <div class="tablewrap"><table><thead><tr><th>模型</th><th>积分</th><th>分组</th></tr></thead><tbody id="modelRows"></tbody></table></div>
+    <p class="mono" id="aliasLine"></p>
+  </section>
+
+  <section data-tab="logs">
+    <div class="row" style="margin-bottom:10px"><button id="reloadLogs">刷新</button></div>
+    <div class="tablewrap"><table><thead><tr><th>时间</th><th>方法</th><th>路径</th><th>状态</th><th>耗时</th><th>IP</th></tr></thead><tbody id="logRows"></tbody></table></div>
+  </section>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+let adminKey = localStorage.getItem('upscale2api.admin') || '';
+$('adminKey').value = adminKey;
+const esc = (s) => String(s ?? '').replace(/[<>&"]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));
+const fmt = (n) => n == null ? '—' : Number(n).toLocaleString('en-US');
+const ago = (iso) => { if (!iso) return '—'; const s = (Date.now() - new Date(iso)) / 1000; return s < 60 ? Math.round(s) + 's' : s < 3600 ? Math.round(s/60) + 'm' : Math.round(s/3600) + 'h'; };
+
+async function api(path, opts = {}) {
+  const r = await fetch(path, { ...opts, headers: { 'x-admin-key': adminKey, 'Content-Type': 'application/json', ...(opts.headers || {}) } });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error || ('HTTP ' + r.status));
+  return j;
+}
+const fail = (e) => { $('msg').textContent = String(e.message || e); };
+const clear = () => { $('msg').textContent = ''; };
+
+document.querySelectorAll('nav button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('nav button').forEach(x => x.removeAttribute('aria-selected'));
+  b.setAttribute('aria-selected', 'true');
+  document.querySelectorAll('section').forEach(s => s.toggleAttribute('data-active', s.dataset.tab === b.dataset.tab));
+  load(b.dataset.tab);
+});
+
+$('saveKey').onclick = () => { adminKey = $('adminKey').value.trim(); localStorage.setItem('upscale2api.admin', adminKey); clear(); load(); };
+
+async function loadOverview() {
+  const s = await api('/admin/api/stats');
+  $('ver').textContent = 'v' + s.version;
+  $('cards').innerHTML = [
+    ['账号', s.pool.accounts], ['可用', s.pool.active], ['上游积分', fmt(s.pool.credits_total)],
+    ['密钥', s.keys.total], ['密钥请求', fmt(s.keys.requests)], ['已用积分', fmt(s.keys.credits_used)],
+    ['产物', fmt(s.files.count)], ['存储', (s.files.bytes/1048576).toFixed(1) + ' MB'],
+    ['进行中', s.pool.in_flight], ['运行', Math.floor(s.uptime_s/60) + 'm'],
+  ].map(([k,v]) => `<div class="card"><i>${k}</i><b>${v}</b></div>`).join('');
+}
+
+async function loadAccounts() {
+  const { accounts } = await api('/admin/api/accounts');
+  $('acctRows').innerHTML = accounts.map(a => `<tr>
+    <td>${esc(a.name)}</td>
+    <td>${a.status !== 'active' ? '<span class="tag off">'+a.status+'</span>' : a.cooldown_seconds ? '<span class="tag warn">冷却 '+a.cooldown_seconds+'s</span>' : '<span class="tag on">可用</span>'}</td>
+    <td>${esc(a.tier || '—')}</td>
+    <td class="n">${fmt(a.credits)}</td>
+    <td class="n">${a.at_minutes_left} 分</td>
+    <td class="n">${a.in_flight}</td>
+    <td class="n">${a.stats.ok}/${a.stats.fail}</td>
+    <td class="n">${a.latency_ms ? a.latency_ms + 'ms' : '—'}</td>
+    <td class="actions">
+      <button data-act="refresh" data-id="${a.id}">刷新</button>
+      <button data-act="purge" data-id="${a.id}" class="danger">销号</button>
+      <button data-act="del" data-id="${a.id}" class="danger">移除</button>
+    </td></tr>`).join('') || '<tr><td colspan="9" class="mono">无账号</td></tr>';
+}
+
+async function loadKeys() {
+  const { keys } = await api('/admin/api/keys');
+  $('keyRows').innerHTML = keys.map(k => `<tr>
+    <td>${esc(k.name)}</td>
+    <td class="mono">${esc(k.prefix || '')}</td>
+    <td>${k.enabled ? '<span class="tag on">启用</span>' : '<span class="tag off">停用</span>'}</td>
+    <td class="n">${k.rpm}</td>
+    <td class="n">${fmt(k.credits_used)}${k.credits_quota != null ? ' / ' + fmt(k.credits_quota) : ''}</td>
+    <td class="n">${fmt(k.usage.requests)}</td>
+    <td class="n">${ago(k.last_used_at)}</td>
+    <td class="actions">
+      <button data-kact="toggle" data-id="${k.id}">${k.enabled ? '停用' : '启用'}</button>
+      <button data-kact="rotate" data-id="${k.id}">换发</button>
+      <button data-kact="del" data-id="${k.id}" class="danger">删除</button>
+    </td></tr>`).join('') || '<tr><td colspan="8" class="mono">无密钥</td></tr>';
+}
+
+async function loadModels() {
+  const m = await api('/admin/api/models');
+  $('modelRows').innerHTML = m.image.map(x => `<tr><td>${esc(x.id)}<span class="mono"> ${esc(x.label)}</span></td><td class="n">${x.credits}</td><td>${x.group}</td></tr>`).join('');
+  $('aliasLine').textContent = '别名：' + Object.entries(m.aliases).map(([a,b]) => a + '→' + b).join('  ');
+}
+
+async function loadLogs() {
+  const { logs } = await api('/admin/api/logs?n=120');
+  $('logRows').innerHTML = logs.map(l => `<tr>
+    <td class="mono">${l.at.slice(11,19)}</td><td class="mono">${l.method}</td>
+    <td class="mono">${esc(l.path)}</td>
+    <td class="n ${l.status >= 400 ? 'tag off' : l.status >= 300 ? 'tag warn' : 'tag on'}">${l.status}</td>
+    <td class="n">${l.ms}ms</td><td class="mono">${esc(l.ip || '')}</td></tr>`).join('');
+}
+
+function load(tab) {
+  if (!adminKey) return;
+  const t = tab || document.querySelector('nav button[aria-selected="true"]')?.dataset.tab || 'overview';
+  const fn = { overview: loadOverview, accounts: loadAccounts, keys: loadKeys, models: loadModels, logs: loadLogs }[t];
+  if (fn) fn().catch(fail);
+}
+
+$('addAcct').onclick = async () => {
+  clear();
+  const lines = $('acctInput').value.split('\n').map(s => s.trim()).filter(Boolean);
+  if (!lines.length) return fail(new Error('粘贴 RT 或账号'));
+  for (const input of lines) {
+    try { await api('/admin/api/accounts', { method: 'POST', body: JSON.stringify({ input, name: $('acctName').value.trim() || undefined }) }); }
+    catch (e) { fail(e); }
+  }
+  $('acctInput').value = '';
+  loadAccounts().catch(fail);
+};
+$('reloadAccts').onclick = () => loadAccounts().catch(fail);
+
+$('addKey').onclick = async () => {
+  clear();
+  const models = $('kModels').value.split(',').map(s => s.trim()).filter(Boolean);
+  try {
+    const r = await api('/admin/api/keys', { method: 'POST', body: JSON.stringify({
+      name: $('kName').value.trim() || 'client',
+      count: Number($('kCount').value) || 1,
+      rpm: Number($('kRpm').value) || 60,
+      credits_quota: $('kQuota').value === '' ? null : Number($('kQuota').value),
+      daily_requests: $('kDaily').value === '' ? null : Number($('kDaily').value),
+      expires_days: $('kDays').value === '' ? null : Number($('kDays').value),
+      models,
+    }) });
+    const first = r.created[0];
+    $('keyText').textContent = r.created.map(c => c.key).join('  ');
+    $('keybox').setAttribute('data-show', '1');
+    loadKeys().catch(fail);
+  } catch (e) { fail(e); }
+};
+$('copyKey').onclick = () => navigator.clipboard.writeText($('keyText').textContent).catch(fail);
+$('hideKey').onclick = () => $('keybox').removeAttribute('data-show');
+$('reloadLogs').onclick = () => loadLogs().catch(fail);
+
+document.addEventListener('click', async (ev) => {
+  const b = ev.target.closest('button[data-act],button[data-kact]');
+  if (!b) return;
+  const id = b.dataset.id;
+  try {
+    if (b.dataset.act === 'refresh') await api('/admin/api/accounts/' + id + '/refresh', { method: 'POST' });
+    if (b.dataset.act === 'del') await api('/admin/api/accounts/' + id, { method: 'DELETE' });
+    if (b.dataset.act === 'purge') { if (confirm('注销上游账号？')) await api('/admin/api/accounts/' + id + '/purge', { method: 'POST' }); }
+    if (b.dataset.kact === 'del') await api('/admin/api/keys/' + id, { method: 'DELETE' });
+    if (b.dataset.kact === 'rotate') { const r = await api('/admin/api/keys/' + id + '/rotate', { method: 'POST' }); $('keyText').textContent = r.key; $('keybox').setAttribute('data-show','1'); }
+    if (b.dataset.kact === 'toggle') {
+      const { keys } = await api('/admin/api/keys');
+      const k = keys.find(x => x.id === id);
+      await api('/admin/api/keys/' + id, { method: 'PATCH', body: JSON.stringify({ enabled: !k.enabled }) });
+    }
+    load();
+  } catch (e) { fail(e); }
+});
+
+if (adminKey) load('overview');
+</script>
+</body>
+</html>
